@@ -2,6 +2,7 @@ package p1.server;
 import java.io.IOException;
 
 import utils.ComUtils;
+import utils.ComErr;
 
 public class GameHandler {
 
@@ -11,6 +12,7 @@ public class GameHandler {
     Methods: run(), init(), play().
      */
     private ComUtils comUtils;
+    private ComErr comErr;
     private int idSessio;
     private String userName;
     private char empty;
@@ -19,6 +21,7 @@ public class GameHandler {
 
     public GameHandler(ComUtils comUtils) {
         this.comUtils = comUtils;
+        this.comErr = new ComErr(comUtils);
         empty = ' ';
         player = 'O';
         system = 'X';
@@ -66,7 +69,7 @@ public class GameHandler {
                     action = getAction();
                     validAction = checkAction(action, board, errCode);
                     if (!validAction) {
-                        sendError(this.idSessio, errCode[0]);
+                        this.comErr.sendError(this.idSessio, errCode[0]);
                         continue ;
                     }
                     setAction(action, board, true);
@@ -86,7 +89,8 @@ public class GameHandler {
                     }
                 }
                 else if (opcode == 8) {
-                    readError();
+                    String errMsg = this.comErr.readError();
+                    System.err.println(errMsg);
                     return ;
                 } else {
                     throw new IllegalArgumentException
@@ -128,10 +132,8 @@ public class GameHandler {
     private void waitHello() throws IOException, IllegalArgumentException {
         byte opcode = comUtils.readByte();
         if (opcode == 8){
-            int idSessio = comUtils.read_int32();
-            byte errCode = comUtils.readByte();
-            String errMsg = comUtils.readStringVariable();
-            printError(idSessio, errCode, errMsg);
+            String errMsg = this.comErr.readError();
+            throw new IllegalArgumentException(errMsg);
         }
         if (opcode != (byte)1)
             throw new IllegalArgumentException 
@@ -152,10 +154,8 @@ public class GameHandler {
     private void waitPlay() throws IOException, IllegalArgumentException {
         byte opcode = comUtils.readByte();
         if (opcode == 8){
-            int idSessio = comUtils.read_int32();
-            byte errCode = comUtils.readByte();
-            String errMsg = comUtils.readStringVariable();
-            printError(idSessio, errCode, errMsg);
+            String errMsg = this.comErr.readError();
+            throw new IllegalArgumentException(errMsg);
         }
         if (opcode != (byte)3) {
             sendAdmit(false);
@@ -182,42 +182,13 @@ public class GameHandler {
             comUtils.writeByte((byte)0);
             
     }
-   
-    private void sendError(int idSessio, byte errCode) throws IOException {
-        //|opcode(8)|idSessio|errCode|errMsg     |00|
-        //|byte     |int     |byte   |stringVariable|
-        //|1 byte   |4 bytes |1byte  |n + 2 byte    |
-        comUtils.writeByte((byte)8);
-        comUtils.write_int32(idSessio);
-        comUtils.writeByte(errCode);
-        if (errCode == 0)
-        comUtils.writeStringVariable("Moviment Desconegut");
-        else if (errCode == 1)
-        comUtils.writeStringVariable("Moviment Invalid");
-        else if (errCode == 9)
-        comUtils.writeStringVariable("Sessio Incorrecte");
-        else
-        comUtils.writeStringVariable("Wrong errCode");
-    }
-
-    private void printError(int idSessio, byte errCode, String errMsg) 
-            throws IOException, IllegalArgumentException {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("ErrCode ").append(errCode).append("\n")
-        .append("Error detail:\n")
-        .append("\tRegistered session id: ").append(idSessio).append('\n')
-        .append("\tError message: ").append(errMsg);
-
-        throw new IllegalArgumentException(sb.toString());
-    }
 
     //GamePlay Logic
 
     private String getAction() throws IOException, IllegalArgumentException {
         int idSessio = comUtils.read_int32();
         if (this.idSessio != idSessio) {
-            sendError(this.idSessio, (byte)9);
+            this.comErr.sendError(this.idSessio, (byte)9);
             throw new IllegalArgumentException
                         ("Expected " + this.idSessio + " but found " + idSessio);
         }
@@ -254,14 +225,6 @@ public class GameHandler {
             board[i][j] = this.player;
         else
             board[i][j] = this.system;
-    }
-
-    private void readError() throws IOException{
-        int idSessio = comUtils.read_int32();
-        byte errCode = comUtils.readByte();
-        String errMsg = comUtils.readStringVariable();
-
-        printError(idSessio, errCode, errMsg);
     }
 
     private boolean checkWin(String action, char[][] board) {
