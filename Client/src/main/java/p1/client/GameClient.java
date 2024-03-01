@@ -1,6 +1,7 @@
 package p1.client;
 
 import utils.ComUtils;
+import utils.ComErr;
 
 import java.io.IOException;
 import java.util.Random;
@@ -12,6 +13,7 @@ public class GameClient {
     Class that encapsulates the game's logic. Sequence of states following the established protocol .
      */
     private ComUtils comUtils;
+    private ComErr comErr;
     private Scanner sc;
     private int idSessio;
     private String userName;
@@ -21,6 +23,7 @@ public class GameClient {
     
     public GameClient(ComUtils comUtils){
         this.comUtils = comUtils;
+        this.comErr = new ComErr(comUtils);
         sc = new Scanner(System.in);
         empty = ' ';
         player = 'O';
@@ -85,7 +88,7 @@ public class GameClient {
                     action = getAction();
                     validAction = checkAction(action, board, errCode);
                     if (!validAction) {
-                        sendError(this.idSessio, errCode[0]);
+                        comErr.sendError(this.idSessio, errCode[0]);
                         continue ;
                     }
                     setAction(action, board, false);
@@ -95,7 +98,8 @@ public class GameClient {
                     win = getResult();
                     playing = false;
                 } else if (opcode == 8) {
-                    readError();
+                    String errMsg = this.comErr.readError();
+                    System.err.println(errMsg);
                     return ;
                 } else {
                     throw new IllegalArgumentException
@@ -127,10 +131,8 @@ public class GameClient {
     private boolean waitReady() throws IOException, IllegalArgumentException {
         byte opcode = comUtils.readByte();
         if (opcode == 8) {
-            int idSessio = comUtils.read_int32();
-            byte errCode = comUtils.readByte();
-            String errMsg = comUtils.readStringVariable();
-            printError(idSessio, errCode, errMsg);
+            String errMsg = this.comErr.readError();
+            System.err.println(errMsg);
             return false;
         }
         if (opcode != 2)
@@ -138,7 +140,7 @@ public class GameClient {
                         ("Expected 2 (READY) but found " + opcode);
         int idSessio = comUtils.read_int32();
         if (this.idSessio != idSessio) {
-            sendError(this.idSessio, (byte)9);
+            comErr.sendError(this.idSessio, (byte)9);
             throw new IllegalArgumentException
                         ("Expected " + this.idSessio + " but found " + idSessio);
         }
@@ -156,10 +158,8 @@ public class GameClient {
     private boolean waitAdmit() throws IOException, IllegalArgumentException {
         byte opcode = comUtils.readByte();
         if (opcode == 8) {
-            int idSessio = comUtils.read_int32();
-            byte errCode = comUtils.readByte();
-            String errMsg = comUtils.readStringVariable();
-            printError(idSessio, errCode, errMsg);
+            String errMsg = this.comErr.readError();
+            System.err.println(errMsg);
             return false;
         }
         if (opcode != 4)
@@ -167,7 +167,7 @@ public class GameClient {
                         ("Expected 4 (ADMIT) but found " + opcode);
         int idSessio = comUtils.read_int32();
         if (this.idSessio != idSessio) {
-            sendError(this.idSessio, (byte)9);
+            comErr.sendError(this.idSessio, (byte)9);
             throw new IllegalArgumentException
                         ("Expected " + this.idSessio + " but found " + idSessio);
         }
@@ -179,35 +179,6 @@ public class GameClient {
         else
             throw new IllegalArgumentException
                         ("Expected 0 or 1 but found " + flag);
-    }
-
-    private void sendError(int idSessio, byte errCode) throws IOException {
-        //|opcode(8)|idSessio|errCode|errMsg     |00|
-        //|byte     |int     |byte   |stringVariable|
-        //|1 byte   |4 bytes |1byte  |n + 2 byte    |
-        comUtils.writeByte((byte)8);
-        comUtils.write_int32(idSessio);
-        comUtils.writeByte(errCode);
-        if (errCode == 0)
-        comUtils.writeStringVariable("Moviment Desconegut");
-        else if (errCode == 1)
-        comUtils.writeStringVariable("Moviment Invalid");
-        else if (errCode == 9)
-        comUtils.writeStringVariable("Sessio Incorrecte");
-        else
-        comUtils.writeStringVariable("Wrong errCode");
-    }
-
-    private void printError(int idSessio, byte errCode, String errMsg) 
-            throws IOException, IllegalArgumentException {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("ErrCode ").append(errCode).append("\n")
-        .append("Error detail:\n")
-        .append("\tRegistered session id: ").append(idSessio).append('\n')
-        .append("\tError message: ").append(errMsg);
-
-        throw new IllegalArgumentException(sb.toString());
     }
 
     //GamePlay Logic
@@ -267,7 +238,7 @@ public class GameClient {
     private String getAction() throws IOException, IllegalArgumentException {
         int idSessio = comUtils.read_int32();
         if (this.idSessio != idSessio) {
-            sendError(this.idSessio, (byte)9);
+            comErr.sendError(this.idSessio, (byte)9);
             throw new IllegalArgumentException
                         ("Expected " + this.idSessio + " but found " + idSessio);
         }
@@ -278,7 +249,7 @@ public class GameClient {
     private byte getResult() throws IOException, IllegalArgumentException {
         int idSessio = comUtils.read_int32();
         if (this.idSessio != idSessio) {
-            sendError(this.idSessio, (byte)9);
+            comErr.sendError(this.idSessio, (byte)9);
             throw new IllegalArgumentException
                         ("Expected " + this.idSessio + " but found " + idSessio);
         }
@@ -291,14 +262,6 @@ public class GameClient {
             throw new IllegalArgumentException
                     ("Expected value between 0~2 but found " + flag);
         return flag;
-    }
-
-    private void readError() throws IOException{
-        int idSessio = comUtils.read_int32();
-        byte errCode = comUtils.readByte();
-        String errMsg = comUtils.readStringVariable();
-
-        printError(idSessio, errCode, errMsg);
     }
 
     private void printBoard(char[][] board) {
