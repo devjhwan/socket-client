@@ -41,9 +41,9 @@ public class GameHandler {
             System.out.println("Player admited");
             play();
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            System.out.println("Desconectem el socket");
         } catch (IllegalArgumentException e) {
-            System.err.println(e.getMessage());
+            System.out.println(e.getMessage());
         }
     }
 
