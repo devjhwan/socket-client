@@ -93,6 +93,7 @@ public class GameHandler {
                     System.err.println(errMsg);
                     return ;
                 } else {
+                    comErr.sendError(this.idSessio, (byte)8);
                     throw new IllegalArgumentException
                                 ("Expected 5 or 8 but found " + opcode);
                 }
@@ -135,9 +136,11 @@ public class GameHandler {
             String errMsg = this.comErr.readError();
             throw new IllegalArgumentException(errMsg);
         }
-        if (opcode != (byte)1)
+        if (opcode != 1) {
+            this.comErr.sendError(this.idSessio, (byte)8);
             throw new IllegalArgumentException 
                         ("Expected 1 (HELLO) but found " + opcode);
+        }
         
         this.idSessio = comUtils.read_int32();
         this.userName = comUtils.readStringVariable();

@@ -135,9 +135,11 @@ public class GameClient {
             System.err.println(errMsg);
             return false;
         }
-        if (opcode != 2)
+        if (opcode != 2) {
+            comErr.sendError(this.idSessio, (byte)8);
             throw new IllegalArgumentException
                         ("Expected 2 (READY) but found " + opcode);
+        }
         int idSessio = comUtils.read_int32();
         if (this.idSessio != idSessio) {
             comErr.sendError(this.idSessio, (byte)9);
@@ -162,9 +164,11 @@ public class GameClient {
             System.err.println(errMsg);
             return false;
         }
-        if (opcode != 4)
+        if (opcode != 4){
+            comErr.sendError(this.idSessio, (byte)8);
             throw new IllegalArgumentException
                         ("Expected 4 (ADMIT) but found " + opcode);
+        }
         int idSessio = comUtils.read_int32();
         if (this.idSessio != idSessio) {
             comErr.sendError(this.idSessio, (byte)9);
