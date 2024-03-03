@@ -50,8 +50,9 @@ public class Server {
                 socket = ss.accept();
                 comutils = getComutils(socket);
                 System.out.println("Client accepted");
-                new GameHandler(comutils).start();
-                socket.close();
+                GameHandler game = new GameHandler(comutils, socket);
+                game.start();
+                //socket.close();
                 comutils = null;
             } catch (IOException e) {
                 throw new RuntimeException("I/O error when accepting a client:\n" + e.getMessage());

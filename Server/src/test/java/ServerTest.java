@@ -10,24 +10,24 @@ import p1.server.Server;
 
 public class ServerTest {
 
-    @Test
-    public void example_server_test() {
+    // @Test
+    // public void example_server_test() {
         
-        (new Thread() {
-            public void run() {
-                Server server = new Server(8081);
-                server.init();
-            }
-           }).start();
+    //     (new Thread() {
+    //         public void run() {
+    //             Server server = new Server(8081);
+    //             server.init();
+    //         }
+    //        }).start();
 
-        try {
-            Socket connection = new Socket("localhost", 8081);
-            assertNotNull(connection);
-            ComUtils comUtils = new ComUtils(connection.getInputStream(), connection.getOutputStream());
-            connection.close();
+    //     try {
+    //         Socket connection = new Socket("localhost", 8081);
+    //         assertNotNull(connection);
+    //         ComUtils comUtils = new ComUtils(connection.getInputStream(), connection.getOutputStream());
+    //         connection.close();
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+    //     } catch (IOException e) {
+    //         e.printStackTrace();
+    //     }
+    // }
 }

@@ -1,10 +1,11 @@
 package p1.server;
 import java.io.IOException;
+import java.net.Socket;
 
 import utils.ComUtils;
 import utils.ComErr;
 
-public class GameHandler {
+public class GameHandler extends Thread {
 
     /*
     TO DO
@@ -13,38 +14,49 @@ public class GameHandler {
      */
     private ComUtils comUtils;
     private ComErr comErr;
+    private Socket socket;
     private int idSessio;
     private String userName;
     private char empty;
     private char player;
     private char system;
 
-    public GameHandler(ComUtils comUtils) {
+    public GameHandler(ComUtils comUtils, Socket socket) {
         this.comUtils = comUtils;
         this.comErr = new ComErr(comUtils);
+        this.socket = socket;
         empty = ' ';
         player = 'O';
         system = 'X';
     }
 
-    public void start() {
+    public void run() {
         System.out.println("GameHandler started");
         try {
-            waitHello();
-            //print user info
-            System.out.println("Session id: " + this.idSessio);
-            System.out.println("User name: " + this.userName);
-            sendReady();
-            System.out.println("Asking for player to ready");
-            waitPlay();
-            sendAdmit(true);
-            System.out.println("Player admited");
+            init();
             play();
         } catch (IOException e) {
             System.out.println("Desconectem el socket");
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
         }
+        try {
+            socket.close();
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
+    }
+
+    private void init() throws IOException, IllegalArgumentException{
+        waitHello();
+        //print user info
+        System.out.println("Session id: " + this.idSessio);
+        System.out.println("User name: " + this.userName);
+        sendReady();
+        System.out.println("Asking for player to ready");
+        waitPlay();
+        sendAdmit(true);
+        System.out.println("Player admited");
     }
 
     private void play() throws IOException, IllegalArgumentException {
