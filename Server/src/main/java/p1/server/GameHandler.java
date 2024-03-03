@@ -66,7 +66,6 @@ public class GameHandler extends Thread {
         while (playing) {
             boolean validAction = false;
             String action = "";
-            byte errCode[] = {-1};
 
             while (!validAction && playing) {
                 byte opcode = comUtils.readByte();
@@ -74,7 +73,7 @@ public class GameHandler extends Thread {
                     action = readAction();
                     validAction = board.checkAction(action);
                     if (!validAction) {
-                        this.comErr.sendError(this.idSessio, errCode[0]);
+                        this.comErr.sendError(this.idSessio, board.getErrCode());
                         continue ;
                     }
                     board.setAction(action, true);

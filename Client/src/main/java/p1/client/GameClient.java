@@ -64,7 +64,6 @@ public class GameClient {
         while (playing) {
             boolean validAction = false;
             String action = "";
-            byte errCode[] = {-1};
 
             while (!validAction) {
                 action = board.autoSelectAction();
@@ -80,7 +79,7 @@ public class GameClient {
                     action = readAction();
                     validAction = board.checkAction(action);
                     if (!validAction) {
-                        comErr.sendError(this.idSessio, errCode[0]);
+                        comErr.sendError(this.idSessio, board.getErrCode());
                         continue ;
                     }
                     board.setAction(action, false);
