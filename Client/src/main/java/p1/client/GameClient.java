@@ -2,6 +2,7 @@ package p1.client;
 
 import utils.ComUtils;
 import utils.ComErr;
+import utils.Board;
 
 import java.io.IOException;
 import java.util.Random;
@@ -14,20 +15,16 @@ public class GameClient {
      */
     private ComUtils comUtils;
     private ComErr comErr;
+    private Board board;
     private Scanner sc;
     private int idSessio;
     private String userName;
-    private char empty;
-    private char player;
-    private char system;
     
     public GameClient(ComUtils comUtils){
         this.comUtils = comUtils;
         this.comErr = new ComErr(comUtils);
+        this.board = new Board();
         sc = new Scanner(System.in);
-        empty = ' ';
-        player = 'O';
-        system = 'X';
         createGameSession();
         //Print session information
         System.out.println("Your Session info");
@@ -62,12 +59,7 @@ public class GameClient {
     private void startPlay() throws IOException, IllegalArgumentException {
         boolean playing = true;
         byte win = 0;
-        char board[][] = new char[3][3];
-
-        for(int i = 0; i < 3; i++)
-            for (int j = 0; j < 3; j++)
-                board[i][j] = ' ';
-        printBoard(board);
+        board.printBoard();
         
         while (playing) {
             boolean validAction = false;
@@ -75,27 +67,27 @@ public class GameClient {
             byte errCode[] = {-1};
 
             while (!validAction) {
-                action = selectAction(board);
-                validAction = checkAction(action, board, errCode);
+                action = board.autoSelectAction();
+                validAction = board.checkAction(action);
             }
-            setAction(action, board, true);
-            printBoard(board);
+            board.setAction(action, true);
+            board.printBoard();
             sendAction(action);
             validAction = false;
             while (!validAction && playing) {
                 byte opcode = comUtils.readByte();
                 if (opcode == 5) {
-                    action = getAction();
-                    validAction = checkAction(action, board, errCode);
+                    action = readAction();
+                    validAction = board.checkAction(action);
                     if (!validAction) {
                         comErr.sendError(this.idSessio, errCode[0]);
                         continue ;
                     }
-                    setAction(action, board, false);
-                    printBoard(board);
+                    board.setAction(action, false);
+                    board.printBoard();
                 }
                 else if (opcode == 6) {
-                    win = getResult();
+                    win = readResult();
                     playing = false;
                 } else if (opcode == 8) {
                     String errMsg = this.comErr.readError();
@@ -107,7 +99,7 @@ public class GameClient {
                 }
             }
         }
-        printBoard(board);
+        board.printBoard();
         if (win == 0) {
             System.out.println("Player has loosed the game!");
         } else if (win == 1) {
@@ -185,51 +177,6 @@ public class GameClient {
                         ("Expected 0 or 1 but found " + flag);
     }
 
-    //GamePlay Logic
-
-    private String selectAction(char[][] board) {
-        StringBuilder action = new StringBuilder();
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (board[i][j] == this.empty) {
-                    return action.append(i).append('-').append(j).toString();
-                }
-            }
-        }
-        return action.toString();
-    }
-
-    private boolean checkAction(String action, char[][] board, byte[] errCode) {
-        int i, j;
-        
-        if (action.length() != 3) {
-            errCode[0] = 0;
-            return false;
-        }
-        i = action.charAt(0) - '0';
-        j = action.charAt(2) - '0';
-        if (i < 0 || i > 2 || j < 0 || j > 2) {
-            errCode[0] = 0;
-            return false;
-        }
-        if (board[i][j] != this.empty) {
-            errCode[0] = 1;
-            return false;
-        }
-        return true;
-    }
-
-    private void setAction(String action, char[][] board, boolean player) {
-        int i, j;
-
-        i = action.charAt(0) - '0';
-        j = action.charAt(2) - '0';
-        if (player)
-            board[i][j] = this.player;
-        else
-            board[i][j] = this.system;
-    }
-
     private void sendAction(String action) throws IOException {
         //|opcode(5)|idSessio|posicio       |
         //|byte     |int     |stringVariable|
@@ -239,7 +186,7 @@ public class GameClient {
         comUtils.writeStringVariable(action);
     }
 
-    private String getAction() throws IOException, IllegalArgumentException {
+    private String readAction() throws IOException, IllegalArgumentException {
         int idSessio = comUtils.read_int32();
         if (this.idSessio != idSessio) {
             comErr.sendError(this.idSessio, (byte)9);
@@ -250,7 +197,7 @@ public class GameClient {
         return action;
     }
 
-    private byte getResult() throws IOException, IllegalArgumentException {
+    private byte readResult() throws IOException, IllegalArgumentException {
         int idSessio = comUtils.read_int32();
         if (this.idSessio != idSessio) {
             comErr.sendError(this.idSessio, (byte)9);
@@ -266,19 +213,5 @@ public class GameClient {
             throw new IllegalArgumentException
                     ("Expected value between 0~2 but found " + flag);
         return flag;
-    }
-
-    private void printBoard(char[][] board) {
-        StringBuilder sb = new StringBuilder();
-        sb.append('|').append(board[0][0])
-            .append('|').append(board[0][1])
-            .append('|').append(board[0][2]).append('|').append('\n')
-        .append('|').append(board[1][0])
-            .append('|').append(board[1][1])
-            .append('|').append(board[1][2]).append('|').append('\n')
-        .append('|').append(board[2][0])
-            .append('|').append(board[2][1])
-            .append('|').append(board[2][2]).append('|').append('\n');
-        System.out.println(sb.toString());
     }
 }
